@@ -1,10 +1,7 @@
 #include "AIPlayer.h"
-#include "Fibonacci.h"
-#include "Exceptions.h"
 #include <limits>
 #include <cstdlib>
 #include <ctime>
-#include <iostream>
 
 AIPlayer::AIPlayer(char symb, char oppSymb, double errorRate)
     : opponentSymbol(oppSymb), errorRate(errorRate) {
@@ -13,55 +10,40 @@ AIPlayer::AIPlayer(char symb, char oppSymb, double errorRate)
 }
 
 void AIPlayer::makeMove(Board& board) {
-    try {
-        int bestScore = std::numeric_limits<int>::min();
-        int bestRow = -1;
-        int bestCol = -1;
+    int bestScore = std::numeric_limits<int>::min();
+    int bestRow = -1;
+    int bestCol = -1;
 
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            if (board.getBoard()[i][j] == ' ') {
+                board.makeMove(i, j, symbol);
+                int score = minimax(board, 0, false, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+                board.undoMove(i, j);
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestRow = i;
+                    bestCol = j;
+                }
+            }
+        }
+    }
+
+    if (shouldMakeMistake()) {
+        // Si l'IA décide de faire une erreur, elle choisit un mouvement aléatoire valide
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 3; ++j) {
                 if (board.getBoard()[i][j] == ' ') {
-                    board.makeMove(i, j, symbol);
-                    int score = minimax(board, 0, false, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
-                    board.undoMove(i, j);
-
-                    // Utilisation de la fonction Fibonacci pour ajuster le score
-                    score += fibonacci(5); // Exemple d'utilisation
-
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestRow = i;
-                        bestCol = j;
-                    }
+                    bestRow = i;
+                    bestCol = j;
+                    break;
                 }
             }
         }
-
-        if (bestRow == -1 || bestCol == -1) {
-            throw InvalidMoveException("Aucun mouvement valide trouvé.");
-        }
-
-        if (shouldMakeMistake()) {
-            // Si l'IA décide de faire une erreur, elle choisit un mouvement aléatoire valide
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    if (board.getBoard()[i][j] == ' ') {
-                        bestRow = i;
-                        bestCol = j;
-                        break;
-                    }
-                }
-            }
-        }
-
-        board.makeMove(bestRow, bestCol, symbol);
     }
-    catch (const InvalidMoveException& e) {
-        std::cerr << "Erreur: " << e.what() << std::endl;
-    }
-    catch (const std::exception& e) {
-        std::cerr << "Erreur inattendue: " << e.what() << std::endl;
-    }
+
+    board.makeMove(bestRow, bestCol, symbol);
 }
 
 bool AIPlayer::shouldMakeMistake() const {
